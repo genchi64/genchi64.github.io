@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GENCHI 玄智 — 易占い 六爻判断</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;700;900&family=Cormorant+Garamond:wght@300;400;600&family=Shippori+Mincho:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --void: #03040a;
+  --card: #0c0e1a;
+  --gold: #d4aa50;
+  --gold-light: #f5d878;
+  --gold-dim: #8a6e30;
+  --silver: #b0c0e0;
+  --silver-dark: #4060a0;
+  --text: #f0f4ff;
+  --muted: #7080b0;
+  --changing: #d04040;
+}
+
+body {
+  background: var(--void);
+  color: var(--text);
+  font-family: 'Noto Serif JP', serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ===== 波紋キャンバス ===== */
+#waveCanvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ===== ラッパー ===== */
+.wrapper {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 20px 80px;
+}
+
+/* ===== ヘッダー ===== */
+header {
+  text-align: center;
+  padding: 44px 0 28px;
+}
+.taiji {
+  font-size: 56px;
+  line-height: 1;
+  margin-bottom: 14px;
+  animation: spin 24s linear infinite;
+  display: inline-block;
+  filter: drop-shadow(0 0 16px rgba(212,170,80,0.5));
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.hd-en {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 30px;
+  font-weight: 300;
+  letter-spacing: 0.45em;
+  color: var(--gold-light);
+  margin-bottom: 6px;
+}
+.hd-jp {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 12px;
+  letter-spacing: 0.5em;
+  color: var(--gold-dim);
+  margin-bottom: 12px;
+}
+.hd-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  font-size: 9px;
+  letter-spacing: 0.5em;
+  color: var(--gold-dim);
+}
+.hd-line::before,.hd-line::after {
+  content:''; width:56px; height:1px;
+  background: linear-gradient(90deg, transparent, var(--gold-dim));
+}
+.hd-line::after { background: linear-gradient(90deg, var(--gold-dim), transparent); }
+
+/* ===== コンテナ ===== */
+.container { width:100%; max-width:520px; }
+
+/* ===== カード共通 ===== */
+.card {
+  background: rgba(12,14,26,0.85);
+  border: 1px solid rgba(212,170,80,0.22);
+  backdrop-filter: blur(8px);
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.card::before {
+  content:'';
+  position: absolute;
+  top:0; left:0; right:0; height:2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity: 0.5;
+}
+
+/* ===== 問いセクション ===== */
+.q-section { padding: 18px 20px; }
+.sec-label {
+  font-size: 9px;
+  letter-spacing: 0.5em;
+  color: #b09050;
+  margin-bottom: 10px;
+}
+.q-input {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(212,170,80,0.18);
+  color: #ffffff;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 13px;
+  padding: 10px 12px;
+  outline: none;
+  resize: none;
+  height: 54px;
+  line-height: 1.7;
+}
+.q-input::placeholder { color: #4050a0; font-size: 11px; }
+
+/* ===== 進捗バー ===== */
+.prog-bar { height: 1px; background: rgba(212,170,80,0.12); margin-bottom: 14px; }
+.prog-fill { height:100%; background: linear-gradient(90deg, var(--gold-dim), var(--gold)); transition: width 0.5s ease; }
+
+/* ===== 爻セクション ===== */
+.yao-section { padding: 22px 20px; }
+.yao-title {
+  font-size: 10px;
+  letter-spacing: 0.4em;
+  color: #d0b060;
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+/* 爻表示 */
+.yao-display {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 22px;
+  min-height: 130px;
+}
+
+.yao-row {
+  display: flex;
+  align-items: center;
+  height: 24px;
+  animation: yaoIn 0.35s ease both;
+}
+@keyframes yaoIn {
+  from { opacity:0; transform:translateX(-6px); }
+  to { opacity:1; transform:translateX(0); }
+}
+
+.yr-num {
+  width: 30px;
+  text-align: right;
+  font-size: 10px;
+  color: #6070a0;
+  flex-shrink: 0;
+  letter-spacing: 0.05em;
+}
+
+.yr-lines {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 10px;
+  height: 24px;
+}
+
+/* 陽爻：金色の一本線 */
+.bar-yang {
+  height: 12px;
+  width: 100%;
+  border-radius: 1px;
+  background: linear-gradient(90deg, #8a6020, #e8c040, #f5d870, #e8c040, #8a6020);
+  box-shadow: 0 0 6px rgba(212,170,80,0.4);
+}
+
+/* 陰爻：銀色の二本線 */
+.bar-yin {
+  height: 12px;
+  width: 44%;
+  border-radius: 1px;
+  background: linear-gradient(90deg, #283560, #7090c8, #a8c0e8, #7090c8, #283560);
+  box-shadow: 0 0 4px rgba(112,144,200,0.3);
+}
+
+/* 変爻：赤 */
+.bar-changing-yang {
+  height: 12px;
+  width: 100%;
+  border-radius: 1px;
+  background: linear-gradient(90deg, #601010, #d03030, #ff5050, #d03030, #601010);
+  box-shadow: 0 0 6px rgba(200,50,50,0.4);
+}
+.bar-changing-yin {
+  height: 12px;
+  width: 44%;
+  border-radius: 1px;
+  background: linear-gradient(90deg, #601010, #c02828, #e03838, #c02828, #601010);
+  box-shadow: 0 0 4px rgba(200,50,50,0.3);
+  opacity: 0.85;
+}
+
+.yr-val {
+  width: 22px;
+  text-align: center;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 13px;
+  color: #5060a0;
+  flex-shrink: 0;
+}
+.yr-type {
+  width: 52px;
+  text-align: right;
+  font-size: 10px;
+  flex-shrink: 0;
+  letter-spacing: 0.05em;
+}
+.yr-type.yang { color: var(--gold); }
+.yr-type.yin { color: var(--silver); }
+.yr-type.changing { color: var(--changing); }
+
+/* ===== 占断ボタン ===== */
+.coin-btn {
+  width: 100%;
+  background: transparent;
+  border: 1.5px solid var(--gold-dim);
+  color: var(--gold-light);
+  font-family: 'Shippori Mincho', serif;
+  font-size: 14px;
+  letter-spacing: 0.3em;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  position: relative;
+}
+.coin-btn:hover { background: rgba(212,170,80,0.08); border-color: var(--gold); }
+.coin-btn:active { transform: scale(0.99); }
+.coin-btn.disabled { opacity: 0.3; pointer-events: none; }
+.coin-btn.complete { border-color: var(--gold); }
+.count-badge { position:absolute; right:16px; font-size:11px; color:var(--muted); }
+
+/* ===== 結果セクション ===== */
+.result-wrap { display:none; }
+.result-wrap.show { display:block; animation: fadeUp 0.9s ease both; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+
+.oracle-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 12px;
+  letter-spacing: 0.5em;
+  color: var(--gold-dim);
+  padding: 28px 0 18px;
+}
+.oracle-label::before,.oracle-label::after {
+  content:''; width:64px; height:1px;
+  background: var(--gold-dim); opacity:0.5;
+}
+
+/* 卦メイン表示 */
+.hex-main-card { padding: 28px 20px 24px; }
+
+/* 本卦と之卦を横並び・中央揃え */
+.hex-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.hex-block {
+  text-align: center;
+  flex: 1;
+  max-width: 180px;
+}
+
+.hex-arrow {
+  font-size: 20px;
+  color: var(--gold-dim);
+  flex-shrink: 0;
+  opacity: 0.7;
+  align-self: center;
+}
+
+/* 卦の爻線（結果用）*/
+.res-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 auto 14px;
+  width: 100px;
+}
+.res-line {
+  display: flex;
+  gap: 6px;
+  height: 10px;
+  align-items: center;
+  justify-content: center;
+}
+.res-bar-yang {
+  height: 10px;
+  width: 100px;
+  border-radius: 1px;
+  background: linear-gradient(90deg, #8a6020, #e8c040, #f5d870, #e8c040, #8a6020);
+  box-shadow: 0 0 5px rgba(212,170,80,0.35);
+}
+.res-bar-yin {
+  height: 10px;
+  width: 43px;
+  border-radius: 1px;
+  background: linear-gradient(90deg, #283560, #7090c8, #a8c0e8, #7090c8, #283560);
+  box-shadow: 0 0 3px rgba(112,144,200,0.25);
+}
+
+/* 卦の漢字 */
+.hex-kanji {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 54px;
+  font-weight: 800;
+  color: var(--gold-light);
+  line-height: 1;
+  margin-bottom: 8px;
+  text-shadow: 0 0 24px rgba(212,170,80,0.4);
+}
+.hex-kanji.zhi { font-size: 40px; color: #c0a050; }
+
+.hex-name {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gold);
+  margin-bottom: 3px;
+}
+.hex-name.zhi { font-size: 12px; color: #a08840; }
+
+.hex-num-txt {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.2em;
+  margin-bottom: 5px;
+}
+.hex-trigrams {
+  font-size: 10px;
+  color: #6878b0;
+  line-height: 1.9;
+  letter-spacing: 0.05em;
+}
+
+/* タグ */
+.res-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 18px;
+}
+.r-tag {
+  border: 1px solid rgba(212,170,80,0.25);
+  padding: 4px 12px;
+  font-size: 10px;
+  color: var(--gold-dim);
+  border-radius: 20px;
+  letter-spacing: 0.2em;
+}
+
+/* メッセージカード */
+.msg-card {
+  padding: 22px 22px;
+  border-left: 3px solid var(--gold);
+}
+.msg-label { font-size:9px; letter-spacing:0.5em; color:#b09050; margin-bottom:10px; }
+.msg-main {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.85;
+  margin-bottom: 10px;
+}
+.msg-body { font-size:12px; color:#8898c8; line-height:2.1; }
+
+/* フッター */
+footer {
+  text-align:center;
+  padding: 28px 0 0;
+  font-size:9px;
+  color: #3848a0;
+  letter-spacing:0.4em;
+}
+
+@media(max-width:480px){
+  .hex-kanji { font-size:42px; }
+  .hex-kanji.zhi { font-size:32px; }
+  .res-lines { width:80px; }
+  .res-bar-yang { width:80px; }
+  .res-bar-yin { width:34px; }
+  .hex-block { max-width:140px; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="waveCanvas"></canvas>
+
+<div class="wrapper">
+
+<header>
+  <div class="taiji">☯</div>
+  <div class="hd-en">GENCHI</div>
+  <div class="hd-jp">玄　智　——　易占い</div>
+  <div class="hd-line">ORACLE SYSTEM</div>
+</header>
+
+<div class="container">
+
+  <div class="card q-section">
+    <div class="sec-label">YOUR QUESTION — 今日の問い</div>
+    <textarea class="q-input" id="qInput"
+      placeholder="問いを心に定めて、ボタンを6回押してください（例：今日の流れは？）"></textarea>
+  </div>
+
+  <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+
+  <div class="card yao-section">
+    <div class="yao-title" id="yaoTitle">初爻から順に　ボタンを6回押してください</div>
+    <div class="yao-display" id="yaoDisplay"></div>
+    <button class="coin-btn" id="coinBtn" onclick="throwCoins()">
+      <span>🪙</span>
+      <span id="btnText">占断を始める</span>
+      <span class="count-badge" id="cntBadge">0 / 6</span>
+    </button>
+  </div>
+
+  <div class="result-wrap" id="resultWrap">
+    <div class="oracle-label">ORACLE RESULT</div>
+
+    <div class="card hex-main-card">
+      <div class="hex-row" id="hexRow"></div>
+      <div class="res-tags" id="resTags"></div>
+    </div>
+
+    <div class="card msg-card">
+      <div class="msg-label">MESSAGE — 今日のメッセージ</div>
+      <div class="msg-main" id="msgMain"></div>
+      <div class="msg-body" id="msgBody"></div>
+    </div>
+  </div>
+
+</div>
+
+<footer>GENCHI 玄智 — 数千年の叡智をAIが統合する</footer>
+</div>
+
+<script>
+// ===== 波紋アニメーション =====
+(function(){
+  const c = document.getElementById('waveCanvas');
+  const ctx = c.getContext('2d');
+  let W, H;
+  function resize(){ W=c.width=innerWidth; H=c.height=innerHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+
+  // 星
+  const stars = Array.from({length:100},()=>({
+    x:Math.random()*2000, y:Math.random()*2000,
+    r:Math.random()*1.0+0.2, a:Math.random(),
+    d:Math.random()*0.004+0.001
+  }));
+
+  // 波紋リスト
+  const ripples = [];
+  function addRipple(){
+    ripples.push({ x:W/2, y:H*0.35, r:10, maxR:Math.max(W,H)*0.85, a:0.35, life:1 });
+  }
+  addRipple();
+  setInterval(addRipple, 2400);
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+
+    // 星
+    stars.forEach(s=>{
+      s.a += s.d;
+      if(s.a>1||s.a<0) s.d*=-1;
+      if(s.x>W) s.x=0;
+      ctx.beginPath();
+      ctx.arc(s.x%W, s.y%H, s.r, 0, Math.PI*2);
+      ctx.fillStyle=`rgba(200,215,255,${s.a*0.55})`;
+      ctx.fill();
+    });
+
+    // 波紋
+    for(let i=ripples.length-1;i>=0;i--){
+      const rp = ripples[i];
+      rp.r += 2.2;
+      rp.a = 0.35*(1 - rp.r/rp.maxR);
+      if(rp.a <= 0){ ripples.splice(i,1); continue; }
+
+      // 金色の波紋
+      ctx.beginPath();
+      ctx.arc(rp.x, rp.y, rp.r, 0, Math.PI*2);
+      ctx.strokeStyle=`rgba(200,160,60,${rp.a*0.6})`;
+      ctx.lineWidth=1;
+      ctx.stroke();
+
+      // 青の波紋（少し遅れ）
+      if(rp.r > 40){
+        ctx.beginPath();
+        ctx.arc(rp.x, rp.y, rp.r*0.75, 0, Math.PI*2);
+        ctx.strokeStyle=`rgba(80,120,200,${rp.a*0.4})`;
+        ctx.lineWidth=0.7;
+        ctx.stroke();
+      }
+    }
+
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ===== 64卦データ =====
+const HEX = {
+  1:{n:'乾為天',r:'けんいてん',k:'乾',u:'乾',l:'乾',m:'天の強さ。創造し、前進する日。',b:'純粋な陽のエネルギーが満ちています。積極的に動き新しいことを始めるのに最良の日。ただし剛すぎず、しなやかさも忘れずに。',t:['創造','前進','リーダー']},
+  2:{n:'坤為地',r:'こんいち',k:'坤',u:'坤',l:'坤',m:'大地の受容。受け取り、育む日。',b:'今日は自分から動くより受け取ることに専念して。人の話をよく聞き静かに育む日。',t:['受容','育み','安定']},
+  3:{n:'水雷屯',r:'すいらいちゅん',k:'屯',u:'坎',l:'震',m:'困難の中に芽がある。焦らず、助けを求めよ。',b:'草木が地面を割って芽を出そうとしている象。困難はあるが生命力は本物。助けを求めることが鍵。',t:['忍耐','協力','芽吹き']},
+  4:{n:'山水蒙',r:'さんすいもう',k:'蒙',u:'艮',l:'坎',m:'学びの始まり。無知を恥じず問い続けよ。',b:'知らないことを素直に認め師を求める時。謙虚に学ぶ姿勢が大きな知恵への扉を開く。',t:['学習','謙虚','成長']},
+  5:{n:'水天需',r:'すいてんじゅ',k:'需',u:'坎',l:'乾',m:'待つことが最善の行動。雨を待つように。',b:'焦りは禁物。今は準備の時。適切なタイミングを静かに待つことでチャンスは自然に訪れる。',t:['待機','準備','タイミング']},
+  6:{n:'天水訟',r:'てんすいしょう',k:'訟',u:'乾',l:'坎',m:'争いに注意。譲歩の中に道がある。',b:'対立やトラブルの気配がある日。強引な主張より歩み寄りを選ぶことで活路が開ける。',t:['調停','譲歩','慎重']},
+  7:{n:'地水師',r:'ちすいし',k:'師',u:'坤',l:'坎',m:'組織を率いる。規律と信頼が力になる。',b:'リーダーシップが問われる日。明確な指針を示し仲間をまとめる力が試される。',t:['統率','規律','組織']},
+  8:{n:'水地比',r:'すいちひ',k:'比',u:'坎',l:'坤',m:'親和と連携。ひとりより共に動く日。',b:'協力・連携・絆の日。信頼できる人と力を合わせることで大きなことが成し遂げられる。',t:['協力','絆','連携']},
+  9:{n:'風天小畜',r:'ふうてんしょうちく',k:'小畜',u:'巽',l:'乾',m:'小さく蓄える。今は大きく動かない。',b:'大きな変化を求めず小さな積み上げに集中する時。細かな準備が後の大きな成果を生む。',t:['蓄積','準備','忍耐']},
+  10:{n:'天沢履',r:'てんたくり',k:'履',u:'乾',l:'兌',m:'礼節を忘れずに。慎重に一歩一歩。',b:'礼儀と節度が大切な日。正しい手順と誠実な態度で進めば危険な状況も乗り越えられる。',t:['礼節','慎重','誠実']},
+  11:{n:'地天泰',r:'ちてんたい',k:'泰',u:'坤',l:'乾',m:'天地が和合する、最良の日。',b:'天地のエネルギーが交わり万物が栄える象。感謝の気持ちで過ごすことでさらに運気が高まる。',t:['調和','繁栄','感謝']},
+  12:{n:'天地否',r:'てんちひ',k:'否',u:'乾',l:'坤',m:'停滞の時。外に出ず、内を整える。',b:'今日は外に向けて動くより内を整え力を蓄える日。じっと待つことが最善。',t:['内省','準備','蓄積']},
+  13:{n:'天火同人',r:'てんかどうじん',k:'同人',u:'乾',l:'離',m:'同志を得る。共に進む者がいる。',b:'志を同じくする仲間と力を合わせる日。開かれた心で人と接することで強い連帯が生まれる。',t:['同志','協力','開放']},
+  14:{n:'火天大有',r:'かてんたいゆう',k:'大有',u:'離',l:'乾',m:'大いなる豊かさ。輝かしい成功の象。',b:'豊穣と成功のエネルギーが満ちている。才能と努力が実を結ぶ日。謙虚さを忘れずに。',t:['豊穣','成功','感謝']},
+  15:{n:'地山謙',r:'ちざんけん',k:'謙',u:'坤',l:'艮',m:'山は地の下に潜む。高さを見せない者に人は集まる。',b:'謙虚さが最大の強さ。自分を低く保ちながら内側に山のような安定した力を秘める。',t:['謙虚','誠実','信頼']},
+  16:{n:'雷地豫',r:'らいちよ',k:'豫',u:'震',l:'坤',m:'喜びと準備。流れに乗る日。',b:'喜びのエネルギーが満ちている日。楽しみながら動くことで物事が自然にうまく流れていく。',t:['喜び','流れ','準備']},
+  17:{n:'沢雷随',r:'たくらいずい',k:'随',u:'兌',l:'震',m:'流れに随う。先導より追随を。',b:'今日は自分が先頭に立つより流れや状況に従って動くことが吉。柔軟に対応することで道が開ける。',t:['随順','柔軟','適応']},
+  18:{n:'山風蠱',r:'さんぷうこ',k:'蠱',u:'艮',l:'巽',m:'腐ったものを正す。今こそ改革の時。',b:'古い問題や停滞した状況を整理する時。乗り越えた先に新しい秩序が生まれる。',t:['改革','整理','再生']},
+  19:{n:'地沢臨',r:'ちたくりん',k:'臨',u:'坤',l:'兌',m:'臨む。近づき指導する時が来た。',b:'新しい局面が近づいている。積極的に関わり接近することで大きなチャンスをつかめる。',t:['接近','指導','好機']},
+  20:{n:'風地観',r:'ふうちかん',k:'観',u:'巽',l:'坤',m:'観察する。見渡し深く見る日。',b:'今日は行動より観察。全体の流れをよく見渡すことで次の正しい一手が見えてくる。',t:['観察','洞察','静観']},
+  21:{n:'火雷噬嗑',r:'からいぜいこう',k:'噬嗑',u:'離',l:'震',m:'噛み砕く。障害を力で突破する。',b:'問題や障害を正面から解決する力が高まっている。公正な判断で曖昧なものをはっきりさせる時。',t:['突破','判断','決断']},
+  22:{n:'山火賁',r:'さんかひ',k:'賁',u:'艮',l:'離',m:'美と装飾。内実を磨く日。',b:'美しさと洗練を大切にする日。内側の充実こそが真の輝きを生む。',t:['美','洗練','内実']},
+  23:{n:'山地剥',r:'さんちはく',k:'剥',u:'艮',l:'坤',m:'剥落の前の静けさ。守りに徹する。',b:'崩れ落ちる前の静かな時期。無理に動かず大切なものを守り次の回復を静かに待つ。',t:['守護','静観','待機']},
+  24:{n:'地雷復',r:'ちらいふく',k:'復',u:'坤',l:'震',m:'一陽来復。光が戻ってくる。',b:'困難の底から新しいエネルギーが芽生える象。どんな暗闇の後にも必ず光は戻ってくる。',t:['再生','希望','回帰']},
+  25:{n:'天雷无妄',r:'てんらいむもう',k:'无妄',u:'乾',l:'震',m:'天真爛漫。純粋な心で動く日。',b:'計算なく純粋な心で行動する時。自然の流れに逆らわずあるがままに進むことが最善。',t:['純粋','自然','無為']},
+  26:{n:'山天大畜',r:'さんてんたいちく',k:'大畜',u:'艮',l:'乾',m:'大いに蓄える。賢者の力が満ちる。',b:'知識・経験・力を蓄える最良の時。今は発揮より蓄積。満ちた後に大きく動く時が来る。',t:['蓄積','知恵','準備']},
+  27:{n:'山雷頤',r:'さんらいい',k:'頤',u:'艮',l:'震',m:'養い。何を取り入れ口にするか。',b:'何を取り入れるかが問われる日。心身を養う本物のものだけを選んで。',t:['養生','選択','節制']},
+  28:{n:'沢風大過',r:'たくふうたいか',k:'大過',u:'兌',l:'巽',m:'大きな重さ。一人で背負いすぎていないか。',b:'負担が限界を超えようとしている象。助けを求め重荷を分かち合うことで危機を乗り越えられる。',t:['分担','助力','限界']},
+  29:{n:'坎為水',r:'かんいすい',k:'坎',u:'坎',l:'坎',m:'深淵を行く。誠実さだけが今日の守り。',b:'困難が重なる時。しかし水は低きに流れながら必ず海に至る。誠実であり続けることが最強の盾。',t:['誠実','忍耐','信念']},
+  30:{n:'離為火',r:'りいか',k:'離',u:'離',l:'離',m:'光明。知性と美が輝く日。',b:'知性と美の力が最大になる日。人前に出る、表現する、伝えるすべての活動に吉。',t:['輝き','表現','知性']},
+  31:{n:'沢山咸',r:'たくざんかん',k:'咸',u:'兌',l:'艮',m:'感応。心が触れ合う日。',b:'感じ合い引き合う力が強まっている。素直な心で人と接することで深い縁が生まれる。',t:['感応','縁','素直']},
+  32:{n:'雷風恒',r:'らいふうこう',k:'恒',u:'震',l:'巽',m:'恒久。変わらぬものを守る日。',b:'継続と一貫性が力を生む。変わらない軸を大切にして。',t:['継続','一貫','恒久']},
+  33:{n:'天山遯',r:'てんざんとん',k:'遯',u:'乾',l:'艮',m:'退く。退くことが最善の前進。',b:'無理に戦わず賢く退く時。引くことは次の前進のための準備。',t:['退却','戦略','準備']},
+  34:{n:'雷天大壮',r:'らいてんたいそう',k:'大壮',u:'震',l:'乾',m:'大いなる力。力の使い方に注意。',b:'エネルギーが満ちている。正しい方向に力を向けることが大切。',t:['力強さ','方向性','正義']},
+  35:{n:'火地晋',r:'かちしん',k:'晋',u:'離',l:'坤',m:'前進。日の出のように昇る時。',b:'明るく前向きに進む時。才能が認められ昇進や新展開が期待できる。',t:['前進','昇進','明るさ']},
+  36:{n:'地火明夷',r:'ちかめいい',k:'明夷',u:'坤',l:'離',m:'光が傷つく時。内に光を守れ。',b:'外の環境が厳しくても内側の光を消してはいけない。今は静かに力を蓄える時。',t:['内省','忍耐','保護']},
+  37:{n:'風火家人',r:'ふうかかじん',k:'家人',u:'巽',l:'離',m:'家族・役割。それぞれの場所で輝く。',b:'家庭や身近な関係を大切にする日。役割を果たし信頼を積み重ねることが全体の調和を生む。',t:['家族','役割','調和']},
+  38:{n:'火沢睽',r:'かたくけい',k:'睽',u:'離',l:'兌',m:'対立と違い。違いの中に新しい視点がある。',b:'意見の相違や対立が生じやすい日。しかし違う視点こそが新しい発見をもたらす。',t:['対話','多様性','発見']},
+  39:{n:'水山蹇',r:'すいざんけん',k:'蹇',u:'坎',l:'艮',m:'険しい道。助けを求めることが勇気。',b:'障害が重なる時。信頼できる人に助けを求めることが最善の道。',t:['助力','謙虚','忍耐']},
+  40:{n:'雷水解',r:'らいすいかい',k:'解',u:'震',l:'坎',m:'解放。こだわりを手放す時。',b:'停滞していたものが動き出す象。古いこだわりを手放すことで新しいエネルギーが流れ込む。',t:['解放','手放し','再出発']},
+  41:{n:'山沢損',r:'さんたくそん',k:'損',u:'艮',l:'兌',m:'減らして本質へ。シンプルにする日。',b:'余分なものを削ぎ落とす時。本質だけが残った時真の力が現れる。',t:['本質','削ぎ落とし','純化']},
+  42:{n:'風雷益',r:'ふうらいえき',k:'益',u:'巽',l:'震',m:'増益。与えることで豊かになる。',b:'自分だけでなく周りにも分け与えることでさらに大きな恵みが返ってくる。',t:['豊かさ','分かち合い','恵み']},
+  43:{n:'沢天夬',r:'たくてんかい',k:'夬',u:'兌',l:'乾',m:'決断。迷いを断ち切る時が来た。',b:'長く続いた迷いや問題に決着をつける時。誠実に公明正大に問題と向き合い決断を下して。',t:['決断','突破','公明']},
+  44:{n:'天風姤',r:'てんぷうこう',k:'姤',u:'乾',l:'巽',m:'出会い。一つの陰が入ってくる。',b:'予期しない出会いや変化が訪れる象。慎重に見極めながら新しい縁を受け取って。',t:['出会い','変化','慎重']},
+  45:{n:'沢地萃',r:'たくちすい',k:'萃',u:'兌',l:'坤',m:'集合。人が集まる時。',b:'人々が自然と集まってくる象。場を整えることで大きなエネルギーが生まれる。',t:['集合','求心力','場づくり']},
+  46:{n:'地風升',r:'ちふうしょう',k:'升',u:'坤',l:'巽',m:'上昇。一歩一歩、着実に昇る。',b:'地道な努力が実を結び着実に上昇していく時。焦らず一歩一歩を大切に。',t:['上昇','着実','努力']},
+  47:{n:'沢水困',r:'たくすいこん',k:'困',u:'兌',l:'坎',m:'困窮の中に光。言葉より行動で示す。',b:'困難な状況でも言葉ではなく行動で誠実さを示す時。試練の中にこそ真の力が磨かれる。',t:['忍耐','行動','誠実']},
+  48:{n:'水風井',r:'すいふうせい',k:'井',u:'坎',l:'巽',m:'井戸。変わらぬ本質に帰る日。',b:'変わらない本質・才能を見つめ直す日。深く掘り下げることが力の源。',t:['本質','才能','深化']},
+  49:{n:'沢火革',r:'たくかかく',k:'革',u:'兌',l:'離',m:'革命。変革の時が来た。',b:'古いものを脱ぎ捨て新しく生まれ変わる時。適切なタイミングで大胆に変革することが吉。',t:['変革','刷新','大胆']},
+  50:{n:'火風鼎',r:'かふうてい',k:'鼎',u:'離',l:'巽',m:'鼎。経験を知恵に変換する日。',b:'経験や知識をより価値あるものに変換する力が高まっている。',t:['変換','創造','成熟']},
+  51:{n:'震為雷',r:'しんいらい',k:'震',u:'震',l:'震',m:'雷の震動。驚きの中に目覚めがある。',b:'予期しない出来事や驚きが訪れるかもしれない。震えながらも笑う精神力が試される。',t:['覚醒','勇気','精神力']},
+  52:{n:'艮為山',r:'ごんいさん',k:'艮',u:'艮',l:'艮',m:'静止。山のように動じない心を。',b:'今日は動くより止まる日。瞑想や内省によって深い洞察と静かな力が育まれる。',t:['静止','瞑想','洞察']},
+  53:{n:'風山漸',r:'ふうざんぜん',k:'漸',u:'巽',l:'艮',m:'漸進。順序を踏んで進む。',b:'急がず正しい順序で一歩一歩進む時。着実なプロセスが確かな成果を生む。',t:['漸進','順序','着実']},
+  54:{n:'雷沢帰妹',r:'らいたくきまい',k:'帰妹',u:'震',l:'兌',m:'副次的な立場。今は主役ではない。',b:'今日は主役よりサポートする立場に徹することが吉。謙虚に補佐することで信頼が深まる。',t:['補佐','謙虚','信頼']},
+  55:{n:'雷火豊',r:'らいかほう',k:'豊',u:'震',l:'離',m:'豊かさの極点。今この瞬間を大切に。',b:'最高の豊かさと輝きの時。今この瞬間に感謝し十分に味わって。',t:['豊かさ','感謝','頂点']},
+  56:{n:'火山旅',r:'かざんりょ',k:'旅',u:'離',l:'艮',m:'旅。異郷にあっても軽やかに。',b:'慣れない環境の中で固執せず軽やかに身を置くことで新しい縁と出会いが生まれる。',t:['旅','変化','柔軟']},
+  57:{n:'巽為風',r:'そんいふう',k:'巽',u:'巽',l:'巽',m:'風のように浸透する。しなやかに繰り返す。',b:'強引にではなく風のようにしなやかに繰り返すことでじわじわと影響が広がっていく。',t:['浸透','継続','しなやか']},
+  58:{n:'兌為沢',r:'だいたく',k:'兌',u:'兌',l:'兌',m:'喜び。言葉と交流が力になる。',b:'喜びと悦びが満ちる日。人との会話・交流・笑いが新しいエネルギーを生み出す。',t:['喜び','交流','言葉']},
+  59:{n:'風水渙',r:'ふうすいかん',k:'渙',u:'巽',l:'坎',m:'渙散。凝り固まったものをほぐす日。',b:'固まったこだわりや対立を風のように解きほぐす時。寛容な心で接することで人の心が開く。',t:['解散','寛容','和解']},
+  60:{n:'水沢節',r:'すいたくせつ',k:'節',u:'坎',l:'兌',m:'節度。ほどよい制限が力を生む。',b:'適切な枠があることで力は正しい方向に集中できる。',t:['節制','制限','集中']},
+  61:{n:'風沢中孚',r:'ふうたくちゅうふ',k:'中孚',u:'巽',l:'兌',m:'内なる誠信。言葉より心が伝わる日。',b:'誠実な心は言葉を超えて相手に届く。今日は飾らずありのままの心で向き合って。',t:['誠信','信頼','真心']},
+  62:{n:'雷山小過',r:'らいざんしょうか',k:'小過',u:'震',l:'艮',m:'小さく過ぎる。大きく動かず慎重に。',b:'今日は大きな行動より小さく慎重に動く日。細部を丁寧に一歩一歩確認しながら進んで。',t:['慎重','丁寧','小歩']},
+  63:{n:'水火既済',r:'すいかきせい',k:'既済',u:'坎',l:'離',m:'完成。しかし終わりが始まりでもある。',b:'物事が成就する象。しかし完成した後こそ慢心せず次を見据えて。',t:['完成','感謝','次へ']},
+  64:{n:'火水未済',r:'かすいびせい',k:'未済',u:'離',l:'坎',m:'未完成。だから可能性は無限にある。',b:'まだ完成していない。それはこれからも進み続けられるということ。プロセスを楽しんで。',t:['可能性','継続','希望']},
+};
+
+// 八卦→爻パターン（上から：上爻・五爻・四爻）
+const TRI = {
+  '乾':['yang','yang','yang'],
+  '兌':['yin','yang','yang'],
+  '離':['yang','yin','yang'],
+  '震':['yin','yin','yang'],
+  '巽':['yang','yang','yin'],
+  '坎':['yin','yang','yin'],
+  '艮':['yang','yin','yin'],
+  '坤':['yin','yin','yin'],
+};
+
+const hexMap={'乾乾':1,'坤坤':2,'坎震':3,'艮坎':4,'坎乾':5,'乾坎':6,'坤坎':7,'坎坤':8,'巽乾':9,'乾兌':10,'坤乾':11,'乾坤':12,'乾離':13,'離乾':14,'坤艮':15,'震坤':16,'兌震':17,'艮巽':18,'坤兌':19,'巽坤':20,'離震':21,'艮離':22,'艮坤':23,'坤震':24,'乾震':25,'艮乾':26,'艮震':27,'兌巽':28,'坎坎':29,'離離':30,'兌艮':31,'震巽':32,'乾艮':33,'震乾':34,'離坤':35,'坤離':36,'巽離':37,'離兌':38,'坎艮':39,'震坎':40,'艮兌':41,'巽震':42,'兌乾':43,'乾巽':44,'兌坤':45,'坤巽':46,'兌坎':47,'坎巽':48,'兌離':49,'離巽':50,'震震':51,'艮艮':52,'巽艮':53,'震兌':54,'震離':55,'離艮':56,'巽巽':57,'兌兌':58,'巽坎':59,'坎兌':60,'巽兌':61,'震艮':62,'坎離':63,'離坎':64};
+
+const triN=['坤','艮','坎','巽','震','離','兌','乾'];
+function triNum(trio){ const b=trio.map(y=>(y==='yang')?1:0); return b[0]*4+b[1]*2+b[2]; }
+
+let yaoLines=[], currentYao=0;
+const yaoNames=['初爻','二爻','三爻','四爻','五爻','上爻'];
+
+function throwCoins(){
+  if(currentYao>=6) return;
+  let total=0;
+  for(let i=0;i<3;i++) total+=Math.random()<0.5?3:2;
+  let type;
+  if(total===6) type='changing-yin';
+  else if(total===7) type='yang';
+  else if(total===8) type='yin';
+  else type='changing-yang';
+  yaoLines.push({type,value:total});
+  currentYao++;
+  renderYao();
+  document.getElementById('progFill').style.width=(currentYao/6*100)+'%';
+  if(currentYao===6){
+    document.getElementById('coinBtn').classList.add('complete','disabled');
+    document.getElementById('btnText').textContent='六爻が揃いました';
+    document.getElementById('cntBadge').textContent='6 / 6';
+    document.getElementById('yaoTitle').textContent='六爻が揃いました';
+    setTimeout(showResult,500);
+  } else {
+    document.getElementById('btnText').textContent=`${yaoNames[currentYao]}を投げる`;
+    document.getElementById('cntBadge').textContent=`${currentYao} / 6`;
+    document.getElementById('yaoTitle').textContent=`${yaoNames[currentYao]}　コインを投げてください`;
+  }
+}
+
+function renderYao(){
+  const d=document.getElementById('yaoDisplay');
+  d.innerHTML='';
+  const labels={'yang':'陽','yin':'陰','changing-yang':'老陽◎','changing-yin':'老陰×'};
+  const typeClass={'yang':'yang','yin':'yin','changing-yang':'changing','changing-yin':'changing'};
+  
+  // 上爻から表示
+  [...yaoLines].reverse().forEach((y,i)=>{
+    const ri=yaoLines.length-1-i;
+    const row=document.createElement('div');
+    row.className='yao-row';
+    row.style.animationDelay=i*0.04+'s';
+    
+    // 爻線のHTML生成
+    let lineHtml='';
+    if(y.type==='yang'){
+      lineHtml=`<div class="bar-yang" style="width:100%"></div>`;
+    } else if(y.type==='yin'){
+      lineHtml=`<div class="bar-yin"></div><div class="bar-yin"></div>`;
+    } else if(y.type==='changing-yang'){
+      lineHtml=`<div class="bar-changing-yang" style="width:100%"></div>`;
+    } else {
+      lineHtml=`<div class="bar-changing-yin"></div><div class="bar-changing-yin"></div>`;
+    }
+    
+    row.innerHTML=`
+      <div class="yr-num">${yaoNames[ri]}</div>
+      <div class="yr-lines">${lineHtml}</div>
+      <div class="yr-val">${y.value}</div>
+      <div class="yr-type ${typeClass[y.type]}">${labels[y.type]}</div>
+    `;
+    d.appendChild(row);
+  });
+}
+
+function calcHexNum(lines){
+  // lines は初爻(0)〜上爻(5)の配列
+  // 下卦：lines[0,1,2]、上卦：lines[3,4,5]
+  const lTypes=lines.slice(0,3).map(y=>(y.type==='yang'||y.type==='changing-yang')?'yang':'yin');
+  const uTypes=lines.slice(3,6).map(y=>(y.type==='yang'||y.type==='changing-yang')?'yang':'yin');
+  const lN=triN[triNum(lTypes)];
+  const uN=triN[triNum(uTypes)];
+  return hexMap[uN+lN]||1;
+}
+
+function buildResLines(upper, lower){
+  // 上卦3爻 + 下卦3爻 → 上から順（上爻→初爻）
+  const uL=TRI[upper]||['yin','yin','yin'];
+  const lL=TRI[lower]||['yin','yin','yin'];
+  return [...uL, ...lL];
+}
+
+function makeResLinesHtml(lineTypes){
+  let h='<div class="res-lines">';
+  lineTypes.forEach(t=>{
+    if(t==='yang'){
+      h+=`<div class="res-line"><div class="res-bar-yang"></div></div>`;
+    } else {
+      h+=`<div class="res-line"><div class="res-bar-yin"></div><div class="res-bar-yin"></div></div>`;
+    }
+  });
+  h+='</div>';
+  return h;
+}
+
+function showResult(){
+  const hexNum=calcHexNum(yaoLines);
+  const hex=HEX[hexNum]||HEX[1];
+  const hasChange=yaoLines.some(y=>y.type==='changing-yang'||y.type==='changing-yin');
+
+  const mainLines=buildResLines(hex.u,hex.l);
+  
+  let gridHtml='';
+  
+  if(hasChange){
+    const zhiLines=yaoLines.map(y=>{
+      if(y.type==='changing-yang') return{...y,type:'yin'};
+      if(y.type==='changing-yin') return{...y,type:'yang'};
+      return y;
+    });
+    const zhiNum=calcHexNum(zhiLines);
+    const zhi=HEX[zhiNum]||HEX[1];
+    const zhiMainLines=buildResLines(zhi.u,zhi.l);
+    
+    gridHtml=`
+      <div class="hex-block">
+        ${makeResLinesHtml(mainLines)}
+        <div class="hex-kanji">${hex.k}</div>
+        <div class="hex-name">${hex.n}</div>
+        <div class="hex-num-txt">第${hexNum}卦・${hex.r}</div>
+        <div class="hex-trigrams">上卦 ${hex.u}（${hex.u}）<br>下卦 ${hex.l}（${hex.l}）</div>
+      </div>
+      <div class="hex-arrow">→</div>
+      <div class="hex-block">
+        ${makeResLinesHtml(zhiMainLines)}
+        <div class="hex-kanji zhi">${zhi.k}</div>
+        <div class="hex-name zhi">${zhi.n}</div>
+        <div class="hex-num-txt">之卦 第${zhiNum}卦</div>
+      </div>
+    `;
+  } else {
+    gridHtml=`
+      <div></div>
+      <div class="hex-block">
+        ${makeResLinesHtml(mainLines)}
+        <div class="hex-kanji">${hex.k}</div>
+        <div class="hex-name">${hex.n}</div>
+        <div class="hex-num-txt">第${hexNum}卦・${hex.r}</div>
+        <div class="hex-trigrams">上卦 ${hex.u}（${hex.u}）<br>下卦 ${hex.l}（${hex.l}）</div>
+      </div>
+      <div></div>
+    `;
+  }
+  
+  document.getElementById('hexRow').innerHTML=gridHtml;
+  document.getElementById('resTags').innerHTML=hex.t.map(t=>`<span class="r-tag">${t}</span>`).join('');
+  document.getElementById('msgMain').textContent=`「${hex.m}」`;
+  document.getElementById('msgBody').textContent=hex.b;
+  
+  const rw=document.getElementById('resultWrap');
+  rw.classList.add('show');
+  setTimeout(()=>rw.scrollIntoView({behavior:'smooth',block:'start'}),150);
+}
+</script>
+</body>
+</html>
