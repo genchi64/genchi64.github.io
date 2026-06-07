@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GENCHI 玄智 — 朝の卦</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;600&family=Cinzel:wght@400;600&family=Noto+Sans+JP:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0e0c09;
+    --paper: #f7f2e8;
+    --gold: #c8a84b;
+    --gold-dim: #8a6f2e;
+    --vermillion: #b5341a;
+    --mist: #7a7268;
+    --smoke: #d8d0c0;
+    --deep: #1c1810;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--deep);
+    color: var(--paper);
+    font-family: 'Noto Serif JP', serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0 0 4rem;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* 背景の卦象 */
+  body::before {
+    content: '☯';
+    position: fixed;
+    font-size: 60vw;
+    color: rgba(200,168,75,0.03);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header {
+    width: 100%;
+    text-align: center;
+    padding: 2.5rem 1rem 1.5rem;
+    position: relative;
+    z-index: 1;
+    border-bottom: 1px solid rgba(200,168,75,0.15);
+  }
+
+  .brand-en {
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.5em;
+    color: var(--gold-dim);
+    margin-bottom: 0.4rem;
+  }
+
+  .brand-ja {
+    font-size: 1.4rem;
+    font-weight: 300;
+    letter-spacing: 0.3em;
+    color: var(--gold);
+  }
+
+  .brand-sub {
+    font-size: 0.7rem;
+    color: var(--mist);
+    letter-spacing: 0.25em;
+    margin-top: 0.3rem;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+
+  main {
+    width: 100%;
+    max-width: 520px;
+    padding: 2rem 1.5rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* 日付・干支表示 */
+  .date-block {
+    text-align: center;
+    margin-bottom: 2rem;
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards 0.2s;
+  }
+
+  .date-main {
+    font-size: 0.8rem;
+    letter-spacing: 0.2em;
+    color: var(--gold);
+    font-family: 'Noto Sans JP', sans-serif;
+    margin-bottom: 0.3rem;
+  }
+
+  .date-kanshi {
+    font-size: 1.8rem;
+    font-weight: 300;
+    letter-spacing: 0.3em;
+    color: var(--paper);
+  }
+
+  .date-year {
+    font-size: 0.7rem;
+    color: var(--mist);
+    letter-spacing: 0.15em;
+    font-family: 'Noto Sans JP', sans-serif;
+    margin-top: 0.2rem;
+  }
+
+  /* 卦カード */
+  .hexagram-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(200,168,75,0.2);
+    border-radius: 4px;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards 0.4s;
+  }
+
+  .hex-number {
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.4em;
+    color: var(--gold-dim);
+    margin-bottom: 0.8rem;
+  }
+
+  .hex-lines {
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: center;
+    gap: 5px;
+    margin: 0 auto 1rem;
+    width: 80px;
+  }
+
+  .hex-line {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--gold);
+  }
+
+  .hex-line.yang { width: 80px; }
+  .hex-line.yin-left { width: 34px; margin-right: 12px; }
+  .hex-line.yin-right { width: 34px; margin-left: 12px; }
+
+  .yin-pair {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+  }
+
+  .yin-seg { width: 34px; height: 4px; background: var(--gold); border-radius: 2px; }
+
+  .hex-name {
+    font-size: 1.5rem;
+    font-weight: 300;
+    letter-spacing: 0.2em;
+    color: var(--paper);
+    margin-bottom: 0.3rem;
+  }
+
+  .hex-reading {
+    font-size: 0.75rem;
+    color: var(--mist);
+    letter-spacing: 0.15em;
+    font-family: 'Noto Sans JP', sans-serif;
+    margin-bottom: 1rem;
+  }
+
+  .hex-essence {
+    font-size: 1rem;
+    color: var(--gold);
+    letter-spacing: 0.1em;
+    line-height: 1.7;
+    margin-bottom: 0.8rem;
+  }
+
+  .hex-message {
+    font-size: 0.82rem;
+    color: #b8b0a0;
+    line-height: 2;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+
+  /* 投稿文エリア */
+  .post-block {
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards 0.6s;
+  }
+
+  .post-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    color: var(--gold-dim);
+    font-family: 'Noto Sans JP', sans-serif;
+    margin-bottom: 0.6rem;
+  }
+
+  .post-text {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(200,168,75,0.15);
+    border-radius: 4px;
+    padding: 1.2rem;
+    font-size: 0.85rem;
+    color: var(--paper);
+    line-height: 2;
+    font-family: 'Noto Sans JP', sans-serif;
+    white-space: pre-line;
+    margin-bottom: 1rem;
+    min-height: 160px;
+  }
+
+  .char-meter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.2rem;
+  }
+
+  .char-count {
+    font-size: 0.7rem;
+    color: var(--mist);
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+
+  .char-count span {
+    color: var(--gold);
+    font-size: 0.9rem;
+  }
+
+  /* ボタン */
+  .btn-x {
+    display: block;
+    width: 100%;
+    padding: 1.1rem;
+    background: var(--ink);
+    border: 1px solid var(--gold);
+    border-radius: 4px;
+    color: var(--gold);
+    font-family: 'Cinzel', serif;
+    font-size: 0.8rem;
+    letter-spacing: 0.3em;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+    text-align: center;
+    margin-bottom: 0.8rem;
+  }
+
+  .btn-x:hover {
+    background: var(--gold);
+    color: var(--ink);
+  }
+
+  .btn-copy {
+    display: block;
+    width: 100%;
+    padding: 0.8rem;
+    background: transparent;
+    border: 1px solid rgba(200,168,75,0.3);
+    border-radius: 4px;
+    color: var(--mist);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .btn-copy:hover { border-color: var(--gold); color: var(--gold); }
+  .btn-copy.copied { color: #7ab87a; border-color: #7ab87a; }
+
+  /* 区切り */
+  .divider {
+    border: none;
+    border-top: 1px solid rgba(200,168,75,0.1);
+    margin: 1.8rem 0;
+  }
+
+  /* 易占いリンク */
+  .oracle-link {
+    text-align: center;
+    margin-top: 1rem;
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards 0.8s;
+  }
+
+  .oracle-link a {
+    font-size: 0.72rem;
+    color: var(--mist);
+    text-decoration: none;
+    letter-spacing: 0.2em;
+    font-family: 'Noto Sans JP', sans-serif;
+    border-bottom: 1px solid rgba(200,168,75,0.2);
+    padding-bottom: 1px;
+    transition: color 0.2s;
+  }
+
+  .oracle-link a:hover { color: var(--gold); }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  footer {
+    text-align: center;
+    padding: 2rem 1rem 0;
+    color: rgba(122,114,104,0.5);
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    font-family: 'Noto Sans JP', sans-serif;
+    position: relative;
+    z-index: 1;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand-en">GENCHI — MORNING ORACLE</div>
+  <div class="brand-ja">玄智 朝の卦</div>
+  <div class="brand-sub">今日の象を受け取る</div>
+</header>
+
+<main>
+  <div class="date-block">
+    <div class="date-main" id="dateMain"></div>
+    <div class="date-kanshi" id="dateKanshi"></div>
+    <div class="date-year" id="dateYear"></div>
+  </div>
+
+  <div class="hexagram-card">
+    <div class="hex-number" id="hexNumber"></div>
+    <div class="hex-lines" id="hexLines"></div>
+    <div class="hex-name" id="hexName"></div>
+    <div class="hex-reading" id="hexReading"></div>
+    <div class="hex-essence" id="hexEssence"></div>
+    <div class="hex-message" id="hexMessage"></div>
+  </div>
+
+  <div class="post-block">
+    <div class="post-label">X 投稿文</div>
+    <div class="post-text" id="postText"></div>
+    <div class="char-meter">
+      <div class="char-count">文字数：<span id="charCount">0</span> / 280</div>
+    </div>
+    <a id="btnX" class="btn-x" href="#" target="_blank">𝕏 に投稿する</a>
+    <button class="btn-copy" id="btnCopy" onclick="copyPost()">投稿文をコピー</button>
+  </div>
+
+  <hr class="divider">
+
+  <div class="oracle-link">
+    <a href="https://genchi64.github.io/">易占い（六爻判断）はこちら</a>
+  </div>
+</main>
+
+<footer>GENCHI 玄智 — @genchi_64</footer>
+
+<script>
+// ── 64卦データ ──────────────────────────────────────────
+const hexagrams = [
+  { n:1,  name:'乾為天',   yomi:'けんいてん',   lines:[1,1,1,1,1,1], essence:'天が動く。',             message:'すべての始まりは、見えない力が先に動くことから始まる。\n今日は自らの意志を、天の流れに預けてみよ。' },
+  { n:2,  name:'坤為地',   yomi:'こんいち',     lines:[0,0,0,0,0,0], essence:'大地が受け取る。',        message:'抗わず、受け入れることが今日の力。\n静かに待つことの中に、深い知恵が宿る。' },
+  { n:3,  name:'水雷屯',   yomi:'すいらいちゅん',lines:[1,0,0,0,1,0], essence:'始まりの混沌。',          message:'新しいものが生まれる時、必ず困難が伴う。\n焦らず、根を張ることから始めよ。' },
+  { n:4,  name:'山水蒙',   yomi:'さんすいもう',  lines:[0,1,0,0,0,1], essence:'蒙昧を啓く。',            message:'知らないことを恥じるな。問うことが智慧の入口。\n師を求め、素直に学べ。' },
+  { n:5,  name:'水天需',   yomi:'すいてんじゅ',  lines:[1,0,1,1,1,1], essence:'待機の時。',              message:'力があっても、今は動く時ではない。\n雨を待つように、好機を静かに待て。' },
+  { n:6,  name:'天水訟',   yomi:'てんすいしょう',lines:[1,1,1,1,0,1], essence:'争いを戒める。',          message:'勝ち負けに執着する前に、何のために争うのかを問え。\n半ばで止まる勇気もある。' },
+  { n:7,  name:'地水師',   yomi:'ちすいし',      lines:[0,0,0,1,0,0], essence:'統率する力。',            message:'多くの人を動かす時は、正しい目的と規律が要る。\n自分自身の内なる軍師に従え。' },
+  { n:8,  name:'水地比',   yomi:'すいちひ',      lines:[0,1,0,0,0,0], essence:'親しみ、寄り添う。',      message:'一人では成しえないことも、信頼でつながれば可能になる。\n今日は誰かと手を結ぶ日。' },
+  { n:9,  name:'風天小畜', yomi:'ふうてんしょうちく',lines:[1,1,0,1,1,1], essence:'小さく蓄える。',        message:'大きな夢も、今日の小さな積み重ねから始まる。\n焦らず、丁寧に。' },
+  { n:10, name:'天沢履',   yomi:'てんたくり',    lines:[1,1,1,1,1,0], essence:'虎の尾を踏む。',          message:'危険な状況でも、礼節と慎重さがあれば道は開ける。\n一歩一歩、確かめながら進め。' },
+  { n:11, name:'地天泰',   yomi:'ちてんたい',    lines:[0,0,0,1,1,1], essence:'天地が交わる。',          message:'上と下、内と外が調和している時。\n流れに乗り、思い切って動け。' },
+  { n:12, name:'天地否',   yomi:'てんちひ',      lines:[1,1,1,0,0,0], essence:'閉塞の時。',              message:'流れが止まっている。無理に突破しようとせず、内を整えよ。\n嵐の前の静けさを生きよ。' },
+  { n:13, name:'天火同人', yomi:'てんかどうじん', lines:[1,1,1,0,1,1], essence:'人と心を合わせる。',      message:'孤独に成し遂げようとしないこと。\n志を同じくする人と力を合わせる時。' },
+  { n:14, name:'火天大有', yomi:'かてんたいゆう', lines:[0,1,1,1,1,1], essence:'大いなる所有。',          message:'豊かさが与えられた時、それを独り占めにしてはならない。\n分かち合うことで、さらに広がる。' },
+  { n:15, name:'地山謙',   yomi:'ちさんけん',    lines:[0,0,0,0,0,1], essence:'謙虚さが徳を呼ぶ。',      message:'実力があるほど、謙虚でいることが難しくなる。\n今日は、一歩引いて周りを見よ。' },
+  { n:16, name:'雷地豫',   yomi:'らいちよ',      lines:[0,0,1,0,0,0], essence:'喜びと準備。',            message:'楽しみながら準備することが、最も力強い行動になる。\n心から喜べる方向へ進め。' },
+  { n:17, name:'沢雷随',   yomi:'たくらいずい',  lines:[1,1,0,0,0,1], essence:'流れに随う。',            message:'リードする時もあれば、従う時もある。\n今日は時の流れに素直に随え。' },
+  { n:18, name:'山風蠱',   yomi:'さんぷうこ',    lines:[0,0,1,1,1,0], essence:'腐ったものを正す。',      message:'乱れを整えることが、今日の仕事。\n問題から目を背けず、根本から手を入れよ。' },
+  { n:19, name:'地沢臨',   yomi:'ちたくりん',    lines:[0,0,0,0,1,1], essence:'大きな力が近づく。',      message:'良い波が来ている。恐れずに乗れ。\nただし、驕らずに。' },
+  { n:20, name:'風地観',   yomi:'ふうちかん',    lines:[1,1,0,0,0,0], essence:'観察する。',              message:'動く前に、よく見よ。\n風が地を見渡すように、高い視点から全体を観察せよ。' },
+  { n:21, name:'火雷噬嗑', yomi:'からいぜいこう', lines:[0,1,1,0,0,1], essence:'障害を噛み砕く。',        message:'道を塞ぐものは、力で砕くしかない時もある。\n正しい目的のもとで、断行せよ。' },
+  { n:22, name:'山火賁',   yomi:'さんかひ',      lines:[0,0,1,0,1,1], essence:'飾り、美しくする。',      message:'外見を整えることも、内を尊重するための礼。\n今日は形にも丁寧さを。' },
+  { n:23, name:'山地剥',   yomi:'さんちはく',    lines:[0,0,1,0,0,0], essence:'剥ぎ落とされる時。',      message:'失うことを恐れるな。剥がれるものは、剥がれるべくして剥がれる。\n本質だけが残る。' },
+  { n:24, name:'地雷復',   yomi:'ちらいふく',    lines:[0,0,0,0,0,1], essence:'一陽来復。',              message:'冬が終わり、光が戻ってくる。\n小さな兆しを見逃すな。回復の始まりがそこにある。' },
+  { n:25, name:'天雷無妄', yomi:'てんらいむぼう', lines:[1,1,1,0,0,1], essence:'純粋に、自然に。',        message:'計算や作為を手放せ。\n純粋な気持ちで行動することが、最大の力となる。' },
+  { n:26, name:'山天大畜', yomi:'さんてんたいちく',lines:[0,0,1,1,1,1], essence:'大きく蓄える。',          message:'力を溜める時。行動より、内を深めよ。\n蓄えれば蓄えるほど、放つ力は大きくなる。' },
+  { n:27, name:'山雷頤',   yomi:'さんらいい',    lines:[0,0,1,0,0,1], essence:'養う。',                  message:'何を食べ、何を語り、何を心に入れるか。\n今日は「養い」を意識せよ。' },
+  { n:28, name:'沢風大過', yomi:'たくふうたいか', lines:[1,1,0,1,1,0], essence:'重荷が限界を超える。',    message:'今の状況は持続できない。\n勇気を持って、構造そのものを変える時。' },
+  { n:29, name:'坎為水',   yomi:'かんいすい',    lines:[1,0,1,1,0,1], essence:'深淵を渡る。',            message:'危機が重なっても、流れる水のように進め。\n止まらないことが、水の本質。' },
+  { n:30, name:'離為火',   yomi:'りいか',        lines:[0,1,1,0,1,1], essence:'火は燃え続ける。',        message:'何かに寄り添い、依りながら輝く。\n今日は自分を支える「支柱」に感謝を。' },
+  { n:31, name:'沢山咸',   yomi:'たくさんかん',  lines:[1,1,0,0,0,1], essence:'感応する。',              message:'心と心が触れ合う時。\n言葉より先に、感じる力を信じよ。' },
+  { n:32, name:'雷風恒',   yomi:'らいふうこう',  lines:[0,0,1,1,1,0], essence:'恒久に続ける。',          message:'続けることの力を甘く見るな。\n一日一日の積み重ねが、やがて山になる。' },
+  { n:33, name:'天山遯',   yomi:'てんさんとん',  lines:[1,1,1,0,0,1], essence:'退く時を知る。',          message:'引くことは負けではない。\n今は戦う時ではなく、力を保存する時。' },
+  { n:34, name:'雷天大壮', yomi:'らいてんたいそう',lines:[0,0,1,1,1,1], essence:'大いなる力が溢れる。',   message:'力がある時ほど、慎重さが要る。\n正しい方向に向けてこそ、大きな力は意味を持つ。' },
+  { n:35, name:'火地晋',   yomi:'かちしん',      lines:[0,1,1,0,0,0], essence:'前進する。',              message:'太陽が昇るように、自然に前へ。\n今日は積極的に動く日。' },
+  { n:36, name:'地火明夷', yomi:'ちかめいい',    lines:[0,0,0,0,1,1], essence:'光が傷つく時。',          message:'才能を隠し、嵐をやり過ごす時もある。\n今は輝きより、生き延びることを優先せよ。' },
+  { n:37, name:'風火家人', yomi:'ふうかかじん',  lines:[1,1,0,0,1,1], essence:'家を整える。',            message:'外の世界を正す前に、まず内（家）を整えよ。\n最も身近な関係に丁寧に。' },
+  { n:38, name:'火沢睽',   yomi:'かたくけい',    lines:[0,1,1,1,1,0], essence:'対立と乖離。',            message:'意見が食い違う時こそ、相手の中に自分を見よ。\n違いは対話の始まり。' },
+  { n:39, name:'水山蹇',   yomi:'すいさんけん',  lines:[1,0,1,0,0,1], essence:'困難な道。',              message:'前が塞がれているなら、別の道を探せ。\nあるいは、今は待つ時かもしれない。' },
+  { n:40, name:'雷水解',   yomi:'らいすいかい',  lines:[0,0,1,1,0,1], essence:'解き放たれる。',          message:'緊張が解け、問題が溶けていく時。\n赦し、手放すことで、新しい流れが生まれる。' },
+  { n:41, name:'山沢損',   yomi:'さんたくそん',  lines:[0,0,1,1,1,0], essence:'減らすことで増える。',    message:'今は欠乏の時ではなく、本質への回帰の時。\n余分を削ぎ落とすことで、真の力が現れる。' },
+  { n:42, name:'風雷益',   yomi:'ふうらいえき',  lines:[1,1,0,0,0,1], essence:'益が増す。',              message:'与えることで、さらに豊かになる時。\n今日は誰かの益になることをせよ。' },
+  { n:43, name:'沢天夬',   yomi:'たくてんかい',  lines:[1,1,0,1,1,1], essence:'断ち切る。',              message:'決断を先送りにしてはならない。\n正しいと分かっているなら、今日、断ち切れ。' },
+  { n:44, name:'天風姤',   yomi:'てんぷうこう',  lines:[1,1,1,1,1,0], essence:'思わぬ出会い。',          message:'予期せぬ出会いが扉を開く。\n今日は偶然を大切に。ただし、流されすぎるな。' },
+  { n:45, name:'沢地萃',   yomi:'たくちすい',    lines:[1,1,0,0,0,0], essence:'人が集まる。',            message:'同じ志を持つ人が集まる時。\n中心となる存在と目的が、集いを力にする。' },
+  { n:46, name:'地風升',   yomi:'ちふうしょう',  lines:[0,0,0,1,1,0], essence:'昇っていく。',            message:'地道な積み重ねが、やがて高みへと向かう。\n今日の一歩を丁寧に。' },
+  { n:47, name:'沢水困',   yomi:'たくすいこん',  lines:[1,1,0,1,0,1], essence:'困窮の時。',              message:'言葉が届かない時は、言葉を重ねるな。\n徳と行動で示せ。嵐は必ず過ぎ去る。' },
+  { n:48, name:'水風井',   yomi:'すいふうせい',  lines:[1,0,1,1,1,0], essence:'井戸は尽きない。',        message:'本質的な価値は枯れない。\n今日は自分の「井戸」＝内なる源泉を見つめよ。' },
+  { n:49, name:'沢火革',   yomi:'たくかかく',    lines:[1,1,0,0,1,1], essence:'革命、変革。',            message:'古いものを脱ぎ捨て、新しい自分へ。\n恐れずに変われ。今がその時。' },
+  { n:50, name:'火風鼎',   yomi:'かふうてい',    lines:[0,1,1,1,1,0], essence:'鼎で煮る。変容する。',    message:'素材が熱で変容するように、人も経験で変わる。\n今日の試練は、成長の火。' },
+  { n:51, name:'震為雷',   yomi:'しんいらい',    lines:[0,0,1,0,0,1], essence:'雷が轟く。',              message:'突然の衝撃に怯えるな。\n恐れながらも笑い、動じながらも前を向け。' },
+  { n:52, name:'艮為山',   yomi:'ごんいさん',    lines:[0,0,1,0,0,1], essence:'山は動かない。',          message:'止まることの力を知れ。\n静かに自分の内側に向き合う時。' },
+  { n:53, name:'風山漸',   yomi:'ふうさんぜん',  lines:[1,1,0,0,0,1], essence:'ゆっくりと、着実に。',    message:'急がば回れ。\n鳥が一段一段、木を昇るように。今日は着実な一歩を。' },
+  { n:54, name:'雷沢帰妹', yomi:'らいたくきまい', lines:[0,0,1,1,1,0], essence:'帰するべき場所へ。',      message:'立場をわきまえ、与えられた役割の中で輝け。\n謙虚さが本当の力を引き出す。' },
+  { n:55, name:'雷火豊',   yomi:'らいかほう',    lines:[0,0,1,0,1,1], essence:'豊かさの絶頂。',          message:'最も輝いている時こそ、次の変化が始まっている。\n満ちた時に、備えよ。' },
+  { n:56, name:'火山旅',   yomi:'かさんりょ',    lines:[0,1,1,0,0,1], essence:'旅人として歩む。',        message:'定まった場所を持たない旅人のように、執着を手放せ。\n軽やかに、今この瞬間を生きよ。' },
+  { n:57, name:'巽為風',   yomi:'そんいふう',    lines:[1,1,0,1,1,0], essence:'風のように浸透する。',    message:'力で押すより、静かに浸透せよ。\n繰り返し、優しく、しかし確実に。' },
+  { n:58, name:'兌為沢',   yomi:'だいたく',      lines:[1,1,0,1,1,0], essence:'喜びが溢れる。',          message:'真の喜びは内から湧き出る。\n今日は笑い、語り、人と喜びを分かち合え。' },
+  { n:59, name:'風水渙',   yomi:'ふうすいかん',  lines:[1,1,0,1,0,1], essence:'散り、溶ける。',          message:'固まったものを溶かす時。\n心の壁、組織の硬直——今日は「溶かすこと」を意図せよ。' },
+  { n:60, name:'水沢節',   yomi:'すいたくせつ',  lines:[1,0,1,1,1,0], essence:'節度、節制。',            message:'限界を設けることは、自由を失うことではない。\n節度が、持続可能な力を生む。' },
+  { n:61, name:'風沢中孚', yomi:'ふうたくちゅうふ',lines:[1,1,0,1,1,0], essence:'内なる誠実さ。',          message:'言葉でなく、誠実さが人の心を動かす。\n今日は内側の真実に従って行動せよ。' },
+  { n:62, name:'雷山小過', yomi:'らいさんしょうか',lines:[0,0,1,0,0,1], essence:'小さく過ぎる。',          message:'今は大きな飛躍より、小さな行動の積み重ねを。\n謙虚に、丁寧に。' },
+  { n:63, name:'水火既済', yomi:'すいかきせい',  lines:[1,0,1,0,1,0], essence:'成就した。',              message:'物事が整った時こそ、次の乱れの種がある。\n完成に安住せず、次の備えを。' },
+  { n:64, name:'火水未済', yomi:'かすいびせい',  lines:[0,1,0,1,0,1], essence:'未だ成らず。',            message:'完成していないことは、可能性があるということ。\n道の途中にいる自分を、肯定せよ。' },
+];
+
+// ── 干支計算 ──────────────────────────────────────────
+const jikkan = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+const junishi = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+const nengo_kan = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+const nengo_shi = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+
+function getKanshi(date) {
+  const base = new Date(2000, 0, 1);
+  const diff = Math.floor((date - base) / 86400000);
+  const kan = jikkan[((diff + 6) % 10 + 10) % 10];
+  const shi = junishi[((diff + 6) % 12 + 12) % 12];
+  return kan + shi;
+}
+
+function getNenKanshi(year) {
+  const idx_k = ((year - 4) % 10 + 10) % 10;
+  const idx_s = ((year - 4) % 12 + 12) % 12;
+  return nengo_kan[idx_k] + nengo_shi[idx_s];
+}
+
+function getHexIndex(date) {
+  const y = date.getFullYear();
+  const m = date.getMonth() + 1;
+  const d = date.getDate();
+  let idx = (y * 13 + m * 7 + d * 3) % 64;
+  return idx;
+}
+
+// ── 卦の爻を描画 ──────────────────────────────────────
+function renderLines(lines) {
+  const container = document.getElementById('hexLines');
+  container.innerHTML = '';
+  // lines[0]が初爻（下）、lines[5]が上爻
+  for (let i = 5; i >= 0; i--) {
+    const div = document.createElement('div');
+    if (lines[i] === 1) {
+      div.className = 'hex-line yang';
+    } else {
+      div.className = 'yin-pair';
+      div.innerHTML = '<div class="yin-seg"></div><div class="yin-seg"></div>';
+    }
+    container.appendChild(div);
+  }
+}
+
+// ── メイン処理 ──────────────────────────────────────
+function init() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth() + 1;
+  const d = now.getDate();
+  const weekdays = ['日','月','火','水','木','金','土'];
+  const w = weekdays[now.getDay()];
+
+  // 日付表示
+  document.getElementById('dateMain').textContent =
+    `${y}年${m}月${d}日（${w}）`;
+  const kanshi = getKanshi(now);
+  document.getElementById('dateKanshi').textContent = kanshi + '日';
+  const nenKanshi = getNenKanshi(y);
+  document.getElementById('dateYear').textContent = nenKanshi + '年';
+
+  // 卦の選定
+  const idx = getHexIndex(now);
+  const hex = hexagrams[idx];
+
+  // 卦表示
+  document.getElementById('hexNumber').textContent = `第 ${hex.n} 卦`;
+  renderLines(hex.lines);
+  document.getElementById('hexName').textContent = hex.name;
+  document.getElementById('hexReading').textContent = hex.yomi;
+  document.getElementById('hexEssence').textContent = hex.essence;
+  document.getElementById('hexMessage').textContent = hex.message;
+
+  // 投稿文生成
+  const post =
+`【今日の卦】${hex.name}　第${hex.n}卦
+
+${hex.essence}
+
+${hex.message}
+
+${y}年${m}月${d}日（${kanshi}日・${nenKanshi}年）
+#朝の易 #GENCHI #玄智 #易経
+
+あなたの易はこちら
+https://genchi64.github.io/`;
+
+  document.getElementById('postText').textContent = post;
+  document.getElementById('charCount').textContent = post.length;
+
+  // Xシェアリンク
+  const encoded = encodeURIComponent(post);
+  document.getElementById('btnX').href =
+    `https://twitter.com/intent/tweet?text=${encoded}`;
+}
+
+function copyPost() {
+  const text = document.getElementById('postText').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('btnCopy');
+    btn.textContent = 'コピーしました ✓';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '投稿文をコピー';
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+
+init();
+</script>
+</body>
+</html>
